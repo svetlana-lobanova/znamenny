@@ -4,6 +4,7 @@ import com.znamen.tones.application.dto.input.SingRequest;
 import com.znamen.tones.application.dto.output.SingResponse;
 import com.znamen.tones.application.service.SyllablesDividerService;
 import com.znamen.tones.application.service.ToneSequenceService;
+import com.znamen.tones.application.service.ToneSingingService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -17,10 +18,14 @@ import java.util.stream.Collectors;
 public class SingUseCase {
     private final ToneSequenceService sequenceService;
     private final SyllablesDividerService syllablesDividerService;
+    private final ToneSingingService toneSingingService;
 
-    public SingUseCase(ToneSequenceService sequenceService, SyllablesDividerService syllablesDividerService) {
+    public SingUseCase(ToneSequenceService sequenceService,
+                       SyllablesDividerService syllablesDividerService,
+                       ToneSingingService toneSingingService) {
         this.sequenceService = sequenceService;
         this.syllablesDividerService = syllablesDividerService;
+        this.toneSingingService = toneSingingService;
     }
 
     public SingResponse execute(SingRequest request) {
@@ -35,6 +40,7 @@ public class SingUseCase {
         List<String> formattedChantLines = new ArrayList<>();
         //делим строки на слова
         for (String line : chantLines) {
+            line = connectPrepositions(line);
             List<List<String>> lineByWords = new ArrayList<>();
             List<String> formattedLineWords = new ArrayList<>();
             List<String> words = getLineWords(line);
@@ -45,11 +51,17 @@ public class SingUseCase {
                 formattedLineWords.add(joinWord(syllables));
             }
             chantLinesBySyllables.add(collectLineSyllables(lineByWords));
-            formattedChantLines.add(connectPrepositions(joinLine(formattedLineWords)));
+            formattedChantLines.add(joinLine(formattedLineWords));
+        }
+
+        List<String> musicLines = new ArrayList<>();
+        for (List<String> line : chantLinesBySyllables) {
+            musicLines.add(toneSingingService.singToneLine(1,"line1", line));
         }
 
         return new SingResponse(
                 formattedChantLines,
+                musicLines,
                 chantLinesBySyllables,
                 sequence
         );
